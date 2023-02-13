@@ -6,6 +6,7 @@ import dgl
 from dgl.data import DGLDataset
 import networkx as nx
 import torch as th
+import matplotlib.pyplot as plt
 
 import os
 import random
@@ -61,7 +62,7 @@ def parse_single_file(parser,vfile_pair,hier_report):
     # collect the label information
     for n in nodes:
         nid = node2id[n[0]]
-        if get_options().region:
+        if False:
             is_adder[nid][0] = n[1]['is_adder']
         else:
             is_adder_input[nid][0] = n[1]["is_adder_input"]
@@ -121,7 +122,7 @@ def parse_single_file(parser,vfile_pair,hier_report):
 
     graph.edata["r"] = th.FloatTensor(is_reverted)
     graph.ndata['position'] = position
-
+    nx.drawing.nx_agraph.write_dot(graph, 'graph.dot')
     return graph
 
 

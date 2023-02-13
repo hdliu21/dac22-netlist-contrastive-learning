@@ -7,7 +7,7 @@ from pyverilog.vparser.parser import parse
 import re
 
 import networkx as nx
-
+import pdb
 import cProfile
 
 def parse_arg(arg,port_info,ios,wires):
@@ -195,7 +195,7 @@ class DcParser:
             block_name = block.split('\n')[0].replace(' ','')
             vars = block[block.rfind('=============================================================================='):]
             vars = vars.split('\n')[1:] # the vars in the datapath report, e.g., | I1    | PI   | Signed   | 9     |                                          |
-
+           
             var_types = {}   # record the port type of the vars, valid types include: PI, PO, IFO
             for var in vars:
                 var = var.replace(' ','')
@@ -228,7 +228,7 @@ class DcParser:
                     for i,operant in enumerate(operants):
                         dp_target_blocks[block_name][1][operant] = 1 if i==0 else 2
         print('dp_target_blocks',dp_target_blocks)
-
+        # pdb.set_trace()
         return dp_target_blocks
 
     def parse_port_hier(
@@ -450,6 +450,7 @@ class DcParser:
         args_to_update = {}
         
         # parse the modules one by one
+        print('The number of modules', len(ast.description.definitions))
         for module in ast.description.definitions:
             
             ios = {}
@@ -489,6 +490,7 @@ class DcParser:
                 mcell = instance.module 
                 mname = instance.name
                 mcomp = mname[:mname.rfind('_')]
+                
                 ports = instance.portlist
 
                 if mcell.startswith("SNPS_CLOCK") or mcell.startswith("PlusArgTimeout"):
@@ -499,11 +501,13 @@ class DcParser:
                 # find if the module'name contain specific keywords, if true, then it is a target module
                 for key_word in self.adder_keywords:
                     if key_word in mcomp:
+                        print('debug', mcomp)
                         cell_type = 'add'
                         is_target = True
                         break
                 for key_word in self.sub_keywords:
                     if key_word in mcomp:
+                        print('debug', mcomp)
                         cell_type = 'sub'
                         is_target = True
                         break
@@ -511,18 +515,36 @@ class DcParser:
                 # if true, then it is a target module
                 if dp_target_blocks.get(mname,None) is not None:
                     cell_type = dp_target_blocks[mname][0]
+                    # print('debug xx')
+                    # print(mname)
+                    # print(cell_type)
+                    # print('ios')
+                    # print(ios)
+                    # print('wires')
+                    # print(wires)
+                    # print('ports')
+                    # print(ports)
                     is_target = True
 
                 # parse the information of a target module
                 if is_target:
                     module_info = ModuleInfo(mcell, cell_type.lower(), mname.lower())
+                    
                     for word in mcell.split('_')[:-1]:
                         if re.match('\d+$', word) is not None:
                             module_info.index = int(word)
                             break
                     # parse the port information of the module
+                    
                     for p in ports:
                         port_info = self.parse_port_hier(ios, wires, p)
+                        print('*****************')
+                        print('ios')
+                        print(ios)
+                        print('wires')
+                        print(wires)
+                        print('*****************')
+                        print(mname)
                         # if some arg of the cell's port is input/output of the father module, then when the father module is instanced latter,
                         # these args should be replaced with args of corresponding port of the father module instance
                         # eg, in the following example, i1 should be replaced with w1 for cell add_x_1
@@ -624,7 +646,6 @@ class DcParser:
         #             print(cell.cell_name,cell.instance_name,cell.ports)
 
         target_blocks = target_blocks[self.top_module]
-        
         return target_blocks
 
     def parse_nonhier(self, fname,dp_target_blocks,target_blocks):
@@ -899,7 +920,8 @@ class DcParser:
         hier_vf, nonhier_vf = vfile_pair[0], vfile_pair[1]
         dp_target_blocks = self.parse_report(hier_report)
         target_cells = self.parse_hier(hier_vf, dp_target_blocks)
-        nodes, edges = self.parse_nonhier(nonhier_vf, dp_target_blocks=dp_target_blocks,target_cells=target_cells)
+        # pdb.set_trace()
+        nodes, edges = self.parse_nonhier(nonhier_vf, dp_target_blocks=dp_target_blocks,target_blocks=target_cells)
 
         return nodes,edges
 
